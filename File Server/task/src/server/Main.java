@@ -1,68 +1,46 @@
 package server;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Scanner;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class Main {
-    private static LinkedList<String> files = new LinkedList<>();
+    private static final int PORT = 34522;
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        String inputString = null;
-        String[] input;
-        LinkedList<String> allowedFileNames = new LinkedList<>(Arrays.asList("file1", "file2", "file3", "file4", "file5", "file6", "file7", "file8", "file9", "file10"));
-        inputString = scanner.nextLine();
-        while (!"exit".equals(inputString)) {
-
-            input = inputString.split(" ");
-            if (!allowedFileNames.contains(input[1])) {
-                System.out.println("Cannot " + input[0] + " the file " + input[1]);
-            }
-            else {
-                switch (input[0]) {
-                    case "add":
-                        add(input[1]);
-                        break;
-                    case "get":
-                        get(input[1]);
-                        break;
-                    case "delete":
-                        delete(input[1]);
-                        break;
-                }
-            }
-            inputString = scanner.nextLine();
+        System.out.println("Server started!");
+        try (
+                ServerSocket server = new ServerSocket(PORT)
+        ) {
+            Session session = new Session(server.accept());
+            session.start();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
+}
 
-    private static void add(String name) {
-        if (!files.contains(name)) {
-            files.add(name);
-            System.out.println("The file " + name + " added successfully");
-        }
-        else {
-            System.out.println("Cannot add the file " + name);
-        }
+class Session extends Thread {
+    private final Socket socket;
 
+    public Session(Socket socketForClient) {
+        this.socket = socketForClient;
     }
 
-    private static void get(String name) {
-        if (files.contains(name)) {
-            System.out.println("The file " + name + " was sent");
-        }
-        else {
-            System.out.println("The file " + name + " not found");
-        }
-    }
-
-    private static void delete(String name) {
-        if (files.contains(name)) {
-            files.remove(name);
-            System.out.println("The file " + name + " was deleted");
-        }
-        else {
-            System.out.println("The file " + name + " not found");
+    public void run() {
+        try (
+                DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+                DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream()))
+        {
+            String msg = "All files were sent!";
+            System.out.println("Received: " + dataInputStream.readUTF());
+            System.out.println("Sent: " + msg);
+            dataOutputStream.writeUTF(msg);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
