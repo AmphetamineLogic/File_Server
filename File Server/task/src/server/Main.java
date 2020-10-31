@@ -7,11 +7,14 @@ import java.util.Scanner;
 
 public class Main {
     private static final int PORT = 34522;
+    protected static Storage storage;
 
     public static void main(String[] args) {
         try (
                 ServerSocket server = new ServerSocket(PORT)
         ) {
+            storage = new Storage();
+            storage.writeSomeShit("gsom.txt", 1);
             while (true) {
                 Session session = new Session(server.accept());
                 session.start();
@@ -40,23 +43,28 @@ class Session extends Thread {
                 String[] request = input.split(" ");
 
                 if ("exit".equals(input)) {
+                    Main.storage.saveMap();
                     System.exit(0);
                 } else {
                     File file = new File(System.getProperty("user.dir") +
                             File.separator + "src" + File.separator + "server" + File.separator + "data" + File.separator + request[1]);
                     System.out.println("Request: " + input);
-                    System.out.println("File: " + file.getAbsolutePath());
-                    switch (request[0]) {
-                        case "GET":
-                            if (file.exists()) {
-                                Scanner scanner = new Scanner(file);
-                                dataOutputStream.writeUTF("200 " + scanner.nextLine());
-                                scanner.close();
-                            } else {
-                                dataOutputStream.writeUTF("404");
+                    boolean result;
+                    switch (request[0] + request[1]) {
+                        case "GETBY":
+                            if (request[2].equals("NAME")) {
+                                byte[] fileAsBytes = Main.storage.readFile(request[3]);
+                                if (fileAsBytes != null) {
+                                    dataOutputStream.write(200);
+                                    dataOutputStream.write(fileAsBytes.length);
+                                    dataOutputStream.write(fileAsBytes);
+                                }
+                                else {
+                                    dataOutputStream.writeUTF("404");
+                                }
                             }
                             break;
-                        case "PUT":
+                        case "PUTBY":
                             if (file.exists()) {
                                 dataOutputStream.writeUTF("403");
                             } else {
@@ -66,13 +74,14 @@ class Session extends Thread {
                                 dataOutputStream.writeUTF("200");
                             }
                             break;
-                        case "DELETE":
-                            if (file.exists()) {
-                                file.delete();
-                                dataOutputStream.writeUTF("200");
-                            } else {
-                                dataOutputStream.writeUTF("404");
+                        case "DELETEBY":
+                            if (request[2].equals("NAME")) {
+                                result = Main.storage.deleteFile(request[3]);
                             }
+                            else {
+                                result = Main.storage.deleteFile(Integer.parseInt(request[3]));
+                            }
+                            dataOutputStream.writeUTF(result ? "200" : "404");
                             break;
                         case "EXIT":
                             return;

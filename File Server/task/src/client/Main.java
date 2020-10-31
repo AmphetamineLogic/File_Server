@@ -24,16 +24,23 @@ public class Main {
 
                 switch (input[0]) {
                     case "1":
-                        System.out.print("Enter filename: ");
+                        System.out.print("Do you want to get the file by name or by id (1 - name, 2 - id): ");
                         input[1] = scanner.nextLine();
-                        dataOutputStream.writeUTF("GET " + input[1]);
-                        System.out.println("The request was sent.");
-                        response = dataInputStream.readUTF();
-                        if (response.startsWith("200")) {
-                            System.out.println("The content of the file is: " + response.substring(4));
-                        } else {
-                            System.out.println("The response says that the file was not found!");
+                        if (input[1].equals("1")) {
+                            System.out.print("Enter filename: ");
+                            input[2] = scanner.nextLine();
+                            dataOutputStream.writeUTF("GET BY NAME " + input[2]);
                         }
+                        if (input[1].equals("2")) {
+                            System.out.print("Enter id: ");
+                            input[2] = scanner.nextLine();
+                            dataOutputStream.writeUTF("GET BY ID " + input[2]);
+                        }
+                        System.out.println("The request was sent.");
+                        dataInputStream.mark(0);
+                        System.out.println("Code: " + dataInputStream.readInt());
+                        dataInputStream.reset();
+                        System.out.println("Size: " + dataInputStream.readInt());
                         break;
                     case "2":
                         System.out.print("Enter filename: ");
@@ -51,9 +58,18 @@ public class Main {
                         }
                         break;
                     case "3":
-                        System.out.print("Enter filename: ");
+                        System.out.print("Do you want to delete the file by name or by id (1 - name, 2 - id): ");
                         input[1] = scanner.nextLine();
-                        dataOutputStream.writeUTF("DELETE " + input[1]);
+                        if (input[1].equals("1")) {
+                            System.out.print("Enter filename: ");
+                            input[2] = scanner.nextLine();
+                            dataOutputStream.writeUTF("DELETE BY NAME " + input[2]);
+                        }
+                        if (input[1].equals("2")) {
+                            System.out.print("Enter id: ");
+                            input[2] = scanner.nextLine();
+                            dataOutputStream.writeUTF("DELETE BY ID " + input[2]);
+                        }
                         System.out.println("The request was sent.");
                         response = dataInputStream.readUTF();
                         if ("200".equals(response)) {
