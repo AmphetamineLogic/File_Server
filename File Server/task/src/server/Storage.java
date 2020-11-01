@@ -28,12 +28,35 @@ public class Storage {
         byte[] fileAsBytes = new byte[0];
         try {
             FileInputStream fileInputStream = new FileInputStream(file);
-            fileInputStream.read(fileAsBytes);
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+            fileAsBytes = bufferedInputStream.readAllBytes();
             return fileAsBytes;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    protected byte[] readFile(Integer id) {
+        byte[] fileAsBytes = new byte[0];
+        Iterator<Map.Entry<String, Integer>> iterator = fileMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Integer> currentEntry = iterator.next();
+            String currentName = currentEntry.getKey();
+            Integer currentId = currentEntry.getValue();
+            if (currentId == id) {
+                File file = new File(rootPath + currentName);
+                try {
+                    FileInputStream fileInputStream = new FileInputStream(file);
+                    BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+                    fileAsBytes = bufferedInputStream.readAllBytes();
+                    return fileAsBytes;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return null;
     }
 
     protected boolean deleteFile(String name) {

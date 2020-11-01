@@ -52,16 +52,21 @@ class Session extends Thread {
                     boolean result;
                     switch (request[0] + request[1]) {
                         case "GETBY":
+                            byte[] fileAsBytes = new byte[0];
                             if (request[2].equals("NAME")) {
-                                byte[] fileAsBytes = Main.storage.readFile(request[3]);
-                                if (fileAsBytes != null) {
-                                    dataOutputStream.write(200);
-                                    dataOutputStream.write(fileAsBytes.length);
-                                    dataOutputStream.write(fileAsBytes);
-                                }
-                                else {
-                                    dataOutputStream.writeUTF("404");
-                                }
+                                fileAsBytes = Main.storage.readFile(request[3]);
+                            } else {
+                              fileAsBytes = Main.storage.readFile(Integer.parseInt(request[3]));
+                            }
+                            if (fileAsBytes != null) {
+                                dataOutputStream.writeInt(200);
+                                dataOutputStream.writeInt(fileAsBytes.length);
+                                dataOutputStream.write(fileAsBytes);
+                                dataOutputStream.close();
+                            }
+                            else {
+                                dataOutputStream.writeUTF("404");
+                                dataOutputStream.close();
                             }
                             break;
                         case "PUTBY":

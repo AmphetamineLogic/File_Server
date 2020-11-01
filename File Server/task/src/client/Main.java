@@ -1,14 +1,14 @@
 package client;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 
 public class Main {
     private static final String SERVER_ADDRESS = "127.0.0.1";
     private static final int SERVER_PORT = 34522;
+    private static final String rootPath = System.getProperty("user.dir") +
+            File.separator + "src" + File.separator + "client" + File.separator + "data" + File.separator;
 
     public static void main(String[] args) {
         String[] input = new String[3];
@@ -21,7 +21,6 @@ public class Main {
                 System.out.print("Enter action (1 - get the file, 2 - create a file, 3 - delete the file): ");
                 input[0] = scanner.nextLine();
                 String response;
-
                 switch (input[0]) {
                     case "1":
                         System.out.print("Do you want to get the file by name or by id (1 - name, 2 - id): ");
@@ -37,10 +36,20 @@ public class Main {
                             dataOutputStream.writeUTF("GET BY ID " + input[2]);
                         }
                         System.out.println("The request was sent.");
-                        dataInputStream.mark(0);
-                        System.out.println("Code: " + dataInputStream.readInt());
-                        dataInputStream.reset();
-                        System.out.println("Size: " + dataInputStream.readInt());
+                        int responseCode = dataInputStream.readInt();
+                        if (responseCode == 200) {
+                            int arraySize = dataInputStream.readInt();
+                            byte[] fileAsBytes = dataInputStream.readNBytes(arraySize);
+                            System.out.print("The file was downloaded! Specify a name for it: ");
+                            String fileName = scanner.nextLine();
+                            FileOutputStream fileOutputStream = new FileOutputStream(rootPath + fileName);
+                            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+                            bufferedOutputStream.write(fileAsBytes);
+                            bufferedOutputStream.close();
+                            System.out.println("File saved on the hard drive!");
+                        } else {
+                            System.out.println("The response says that this file is not found!");
+                        }
                         break;
                     case "2":
                         System.out.print("Enter filename: ");
