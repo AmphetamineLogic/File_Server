@@ -3,6 +3,7 @@ package server;
 import java.io.*;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Storage {
@@ -21,6 +22,47 @@ public class Storage {
 
     protected void writeSomeShit(String string, Integer integer) {
         fileMap.put(string, integer);
+    }
+
+    protected int putFile(byte[] fileAsBytes) {
+        String name = UUID.randomUUID().toString();
+        return putFile(fileAsBytes, name);
+    }
+
+    protected int putFile(byte[] fileAsBytes, String name) {
+        if (writeFile(fileAsBytes, name)) {
+            int id = getNextId();
+            fileMap.put(name, id);
+            saveMap();
+            return id;
+        }
+        else return -1;
+    }
+
+    protected int getNextId () {
+        int id = 0;
+        for (Integer integer: fileMap.values()) {
+            if (integer > id) {
+                id = integer;
+            }
+        }
+        return ++id;
+    }
+
+    protected boolean writeFile(byte[] fileAsBytes, String name) {
+        File file = new File(rootPath + name);
+        try {
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+            bufferedOutputStream.write(fileAsBytes);
+            bufferedOutputStream.close();
+            return true;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     protected byte[] readFile(String name) {
@@ -60,10 +102,11 @@ public class Storage {
     }
 
     protected boolean deleteFile(String name) {
-        if (fileMap.contains(name)) {
+        if (fileMap.containsKey(name)) {
             File file = new File(rootPath + name);
             file.delete();
             fileMap.remove(name);
+            saveMap();
             return true;
         }
         return false;
@@ -75,7 +118,7 @@ public class Storage {
             Map.Entry<String, Integer> currentEntry = iterator.next();
             String currentName = currentEntry.getKey();
             Integer currentId = currentEntry.getValue();
-            if (currentId == id) {
+            if (currentId.equals(id)) {
                 File file = new File(rootPath + currentName);
                 file.delete();
                 iterator.remove();

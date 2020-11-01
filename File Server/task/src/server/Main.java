@@ -3,26 +3,34 @@ package server;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Main {
     private static final int PORT = 34522;
     protected static Storage storage;
+    static AtomicBoolean isRunning;
 
     public static void main(String[] args) {
         try (
                 ServerSocket server = new ServerSocket(PORT)
         ) {
             storage = new Storage();
-            storage.writeSomeShit("gsom.txt", 1);
-            while (true) {
+            isRunning = new AtomicBoolean();
+            isRunning.set(true);
+            while (isRunning.get() == true) {
                 Session session = new Session(server.accept());
                 session.start();
             }
+            server.close();
+            System.exit(0);
         }
         catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    protected static void shutdown () {
+        System.exit(0);
     }
 }
 
@@ -44,47 +52,54 @@ class Session extends Thread {
 
                 if ("exit".equals(input)) {
                     Main.storage.saveMap();
-                    System.exit(0);
+                    Main.isRunning.set(false);
+                    socket.close();
                 } else {
-                    File file = new File(System.getProperty("user.dir") +
-                            File.separator + "src" + File.separator + "server" + File.separator + "data" + File.separator + request[1]);
                     System.out.println("Request: " + input);
                     boolean result;
-                    switch (request[0] + request[1]) {
-                        case "GETBY":
+                    switch (request[0]) {
+                        case "GET":
                             byte[] fileAsBytes = new byte[0];
-                            if (request[2].equals("NAME")) {
-                                fileAsBytes = Main.storage.readFile(request[3]);
+                            if (request[1].equals("BY_NAME")) {
+                                fileAsBytes = Main.storage.readFile(request[2]);
                             } else {
-                              fileAsBytes = Main.storage.readFile(Integer.parseInt(request[3]));
+                              fileAsBytes = Main.storage.readFile(Integer.parseInt(request[2]));
                             }
                             if (fileAsBytes != null) {
                                 dataOutputStream.writeInt(200);
                                 dataOutputStream.writeInt(fileAsBytes.length);
                                 dataOutputStream.write(fileAsBytes);
-                                dataOutputStream.close();
                             }
                             else {
                                 dataOutputStream.writeUTF("404");
-                                dataOutputStream.close();
                             }
+                            dataOutputStream.close();
                             break;
-                        case "PUTBY":
-                            if (file.exists()) {
-                                dataOutputStream.writeUTF("403");
+                        case "PUT":
+                            Integer resultingID;
+                            if (request.length == 1) {
+                                int size = dataInputStream.readInt();
+                                resultingID = Main.storage.putFile(dataInputStream.readNBytes(size));
                             } else {
-                                FileOutputStream fileOutputStream = new FileOutputStream(file);
-                                fileOutputStream.write(request[2].getBytes());
-                                fileOutputStream.close();
-                                dataOutputStream.writeUTF("200");
+                                String desiredName = request[1];
+                                int size = dataInputStream.readInt();
+                                resultingID = Main.storage.putFile(dataInputStream.readNBytes(size), desiredName);
                             }
-                            break;
-                        case "DELETEBY":
-                            if (request[2].equals("NAME")) {
-                                result = Main.storage.deleteFile(request[3]);
+                            if (resultingID == -1) {
+                                dataOutputStream.writeUTF("404");
                             }
                             else {
-                                result = Main.storage.deleteFile(Integer.parseInt(request[3]));
+                                dataOutputStream.writeUTF("200");
+                                dataOutputStream.writeUTF(resultingID.toString());
+                            }
+                            dataOutputStream.close();
+                            break;
+                        case "DELETE":
+                            if (request[1].equals("BY_NAME")) {
+                                result = Main.storage.deleteFile(request[2]);
+                            }
+                            else {
+                                result = Main.storage.deleteFile(Integer.parseInt(request[2]));
                             }
                             dataOutputStream.writeUTF(result ? "200" : "404");
                             break;
